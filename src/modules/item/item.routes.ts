@@ -23,7 +23,7 @@ router.get("/:id", async (req: Request, res: Response) => {
 });
 
 // UPDATE
-router.put("/:id", async (req: Request, res: Response) => {
+router.patch("/:id", async (req: Request, res: Response) => {
   const item = await ItemModel.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
   });

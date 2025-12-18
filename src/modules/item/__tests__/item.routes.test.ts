@@ -31,7 +31,7 @@ describe("Item CRUD", () => {
       .send({ name: "Banana", quantity: 2 });
 
     const res = await request(app)
-      .put(`/api/items/${create.body._id}`)
+      .patch(`/api/items/${create.body._id}`)
       .send({ quantity: 10 });
 
     expect(res.body.quantity).toBe(10);

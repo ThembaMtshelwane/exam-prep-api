@@ -1,4 +1,5 @@
 import { Router } from "express";
+import itemRoutes from "../modules/item/item.routes";
 
 const router = Router();
 
@@ -7,5 +8,6 @@ router.get("/", (req, res) => {
     message: "Test API is running successfully.",
   });
 });
+router.use("/items", itemRoutes);
 
 export default router;

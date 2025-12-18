@@ -11,6 +11,7 @@ const ENV_SCHEMA = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]),
   CLIENT_URL: z.url(),
   DEV_CLIENT_URL: z.url(),
+  MONGO_URI: z.string().min(1, "MONGO_URI is required"),
 });
 
 // ✅ Infer the type from Zod
@@ -22,4 +23,5 @@ export const ENV_VARS: EnvVars = ENV_SCHEMA.parse({
   NODE_ENV: process.env.NODE_ENV ?? "development",
   CLIENT_URL: process.env.CLIENT_URL ?? "http://localhost:3000",
   DEV_CLIENT_URL: process.env.DEV_CLIENT_URL ?? "http://localhost:3000",
+  MONGO_URI: process.env.MONGO_URI ?? "mongodb://localhost:27017/exam-prep-db",
 });

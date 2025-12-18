@@ -1,9 +1,16 @@
-import app from "./app";
+import mongoose from "mongoose";
+import { createApp } from "./app";
 import dotenv from "dotenv";
 import { ENV_VARS } from "./consts/env.const";
 dotenv.config();
 
-app.listen(ENV_VARS.PORT, () => {
-  console.log(`Server is running on http://localhost:${ENV_VARS.PORT}/api`);
-  console.log(`Environment: ${ENV_VARS.NODE_ENV}`);
-});
+const start = async () => {
+  await mongoose.connect(ENV_VARS.MONGO_URI);
+
+  const app = createApp();
+  app.listen(ENV_VARS.PORT, () => {
+    console.log(`Server running on port http://localhost:${ENV_VARS.PORT}`);
+  });
+};
+
+start();

@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
 import { ENV_VARS } from "../consts/env.const";
 
-export const connectDatabase = async () => {
+export const connectDatabase = async (uri:string) => {
   try {
-    await mongoose.connect(ENV_VARS.MONGO_URI);
+    await mongoose.connect(uri);
     console.log(`✅ Connected to the ${mongoose.connection.name} database`);
     console.log(` Running in ${ENV_VARS.NODE_ENV} mode`);
   } catch (error) {

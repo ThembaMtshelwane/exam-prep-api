@@ -6,7 +6,7 @@ let mongo: MongoMemoryServer;
 
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create();
-  await connectDatabase();
+  await connectDatabase(mongo.getUri());
 });
 
 afterEach(async () => {

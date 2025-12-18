@@ -5,7 +5,7 @@ import { connectDatabase, disconnectDatabase } from "./config/database";
 const startServer = async () => {
   try {
     // Connect to DB
-    await connectDatabase();
+    await connectDatabase(ENV_VARS.MONGO_URI);
 
     const app = createApp();
 

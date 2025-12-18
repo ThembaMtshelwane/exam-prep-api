@@ -1,14 +1,9 @@
-import express from "express";
+import app from "./app";
 import dotenv from "dotenv";
+import { ENV_VARS } from "./consts/env.const";
 dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.get("/", (req, res) => {
-  res.json({ message: "Hello, World! From Exam Prep API." });
-});
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV}`);
+app.listen(ENV_VARS.PORT, () => {
+  console.log(`Server is running on http://localhost:${ENV_VARS.PORT}/api`);
+  console.log(`Environment: ${ENV_VARS.NODE_ENV}`);
 });

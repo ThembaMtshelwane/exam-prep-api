@@ -1,11 +1,12 @@
-import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
+import mongoose from "mongoose";
+import { connectDatabase, disconnectDatabase } from "../config/database";
 
 let mongo: MongoMemoryServer;
 
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create();
-  await mongoose.connect(mongo.getUri());
+  await connectDatabase();
 });
 
 afterEach(async () => {
@@ -19,6 +20,6 @@ afterEach(async () => {
 });
 
 afterAll(async () => {
-  await mongoose.disconnect();
+  await disconnectDatabase();
   await mongo.stop();
 });

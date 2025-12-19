@@ -25,6 +25,8 @@ export const ERROR_MESSAGES = {
 
 export const SUCCESS_MESSAGES = {
   RESOURCE_CREATED: "The resource was created successfully.",
+  RESOURCE_FETCHED: "Resource fetched successfully",
+  RESOURCES_FETCHED: "Resources fetched successfully",
   RESOURCE_UPDATED: "The resource was updated successfully.",
   RESOURCE_DELETED: "The resource was deleted successfully.",
   OPERATION_SUCCESSFUL: "The operation was completed successfully.",

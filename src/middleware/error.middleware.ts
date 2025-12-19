@@ -6,8 +6,8 @@ import { ENV_VARS } from "../consts/env.const";
 
 export const notFound = (req: Request, res: Response, next: NextFunction) => {
   const error = new HttpError(
-    `Not Found - ${req.originalUrl}`,
-    HTTP_CODES.NOT_FOUND
+    HTTP_CODES.NOT_FOUND,
+    `Not Found - ${req.originalUrl}`
   );
   next(error);
 };
@@ -31,7 +31,7 @@ export const errorHandler = (
   err: unknown | ZodError | HttpError,
   req: Request,
   res: Response,
-  next: NextFunction // eslint-disable-line @typescript-eslint/no-unused-vars
+  next: NextFunction
 ): unknown => {
   if (err instanceof HttpError) {
     return res.status(err.statusCode).json({

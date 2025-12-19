@@ -7,19 +7,25 @@ import {
   SUCCESS_MESSAGES,
 } from "../../consts/http.const";
 import HttpError from "../../utils/http.error";
+import { validate } from "../../middleware/validate.middleware";
+import { createItemSchema } from "./item.schema";
 
 const router = Router();
 
 // CREATE
-router.post("/", async (req: Request, res: Response) => {
-  const item = await ItemModel.create(req.body);
-  sendResponse(
-    res,
-    HTTP_CODES.CREATED,
-    SUCCESS_MESSAGES.RESOURCE_CREATED,
-    item
-  );
-});
+router.post(
+  "/",
+  validate(createItemSchema),
+  async (req: Request, res: Response) => {
+    const item = await ItemModel.create(req.body);
+    sendResponse(
+      res,
+      HTTP_CODES.CREATED,
+      SUCCESS_MESSAGES.RESOURCE_CREATED,
+      item
+    );
+  }
+);
 
 // READ ALL
 router.get("/", async (_, res: Response) => {

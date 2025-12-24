@@ -1,5 +1,7 @@
 import { z } from "zod";
 import dotenv from "dotenv";
+import crypto from "crypto";
+
 dotenv.config();
 
 // ✅ Define the schema
@@ -11,11 +13,17 @@ const ENV_SCHEMA = z.object({
       message: "PORT must be a valid number between 5000 and 65535",
     }),
   NODE_ENV: z.enum(["development", "production", "test"]),
-  CLIENT_URL: z.url(),
-  DEV_CLIENT_URL: z.url(),
+  CLIENT_URL: z.url().min(1, "Production client url is required"),
+  DEV_CLIENT_URL: z.url().min(1, "Dev client url is required"),
   MONGO_URI: z.string().min(1, "MONGO_URI is required"),
-  ACCESS_SECRET: z.string(),
-  REFRESH_SECRET: z.string(),
+  GLOBAL_ACCESS_SECRET: z
+    .string()
+    .min(10, "Global access secret value must be at least 10 characters long"),
+  GLOBAL_REFRESH_SECRET: z
+    .string()
+    .min(10, "Global refresh secret value must be at least 10 characters long"),
+  ACCESS_TOKEN_EXPIRES_IN: z.string().default("15m"),
+  REFRESH_TOKEN_EXPIRES_IN: z.string().default("7d"),
 });
 
 // ✅ Infer the type from Zod
@@ -28,6 +36,10 @@ export const ENV_VARS: EnvVars = ENV_SCHEMA.parse({
   CLIENT_URL: process.env.CLIENT_URL ?? "http://localhost:3000",
   DEV_CLIENT_URL: process.env.DEV_CLIENT_URL ?? "http://localhost:3000",
   MONGO_URI: process.env.MONGO_URI ?? "mongodb://localhost:27017/exam-prep-db",
-  ACCESS_SECRET: process.env.ACCESS_SECRET ?? "",
-  REFRESH_SECRET: process.env.REFRESH_SECRET ?? "",
+  GLOBAL_ACCESS_SECRET:
+    process.env.GLOBAL_SECRET ?? crypto.randomBytes(32).toString("hex"),
+  GLOBAL_REFRESH_SECRET:
+    process.env.GLOBAL_REFRESH_SECRET ?? crypto.randomBytes(32).toString("hex"),
+  ACCESS_TOKEN_EXPIRES_IN: process.env.ACCESS_TOKEN_EXPIRES_IN,
+  REFRESH_TOKEN_EXPIRES_IN: process.env.REFRESH_TOKEN_EXPIRES_IN,
 });

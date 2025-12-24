@@ -1,13 +1,19 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import User from "../user/user.model";
-import {
-  generateAccessToken,
-  generateRefreshToken,
-  verifyRefreshToken,
-} from "../../utils/jwt";
+import { generateAccessToken, generateRefreshToken } from "../../utils/jwt";
 
-const COOKIE_OPTIONS = {
+import jwt from "jsonwebtoken";
+import { TokenPayload } from "./auth.types";
+import { HTTP_CODES } from "../../consts/http.const";
+
+const ACCESS_COOKIE_OPTIONS = {
+  httpOnly: true, // Prevents JS from reading the cookie (XSS protection)
+  secure: process.env.NODE_ENV === "production", // Only send over HTTPS in production
+  sameSite: "strict" as const, // Prevents CSRF
+  maxAge: 15 * 60 * 60 * 1000, //15 min
+};
+const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true, // Prevents JS from reading the cookie (XSS protection)
   secure: process.env.NODE_ENV === "production", // Only send over HTTPS in production
   sameSite: "strict" as const, // Prevents CSRF
@@ -43,16 +49,21 @@ export const login = async (req: Request, res: Response) => {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
-  const accessToken = generateAccessToken(user._id, user.role);
-  const refreshToken = generateRefreshToken(user._id, user.role);
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
 
-  // Store refresh token in DB array for rotation
-  user.refreshTokens.push(refreshToken);
-  await user.save();
+  // Set Cookie for Refresh Token and  Access Token in JSON
+  res.cookie("refreshToken", refreshToken, REFRESH_COOKIE_OPTIONS);
+  res.cookie("accessToken", accessToken, ACCESS_COOKIE_OPTIONS);
 
-  // Set Cookie for Refresh Token, send Access Token in JSON
-  res.cookie("refreshToken", refreshToken, COOKIE_OPTIONS);
-  res.json({ accessToken, role: user.role });
+  res.status(HTTP_CODES.OK).json({
+    message: "Successfully logged in",
+    user: {
+      id: user._id,
+      email: user.email,
+      role: user.role,
+    },
+  });
 };
 
 export const refresh = async (req: Request, res: Response) => {
@@ -61,36 +72,26 @@ export const refresh = async (req: Request, res: Response) => {
     return res.status(401).json({ message: "Session expired" });
 
   try {
-    const decoded = verifyRefreshToken(refreshToken);
-    const user = await User.findById(decoded._id);
+    const decoded = jwt.decode(refreshToken) as TokenPayload;
+    const user = await User.findById(decoded.id);
 
-    // Security check: is this token still valid in our DB?
-    if (!user || !user.refreshTokens.includes(refreshToken)) {
-      return res.status(403).json({ message: "Invalid refresh token" });
-    }
+    if (!user) return res.status(500).json({ message: "User not found" });
 
     // Token Rotation: Remove used token, issue a new pair
-    const newAccessToken = generateAccessToken(user._id, user.role);
-    const newRefreshToken = generateRefreshToken(user._id, user.role);
+    const newAccessToken = generateAccessToken(user);
+    const newRefreshToken = generateRefreshToken(user);
 
-    user.refreshTokens = user.refreshTokens.filter((t) => t !== refreshToken);
-    user.refreshTokens.push(newRefreshToken);
     await user.save();
 
-    res.cookie("refreshToken", newRefreshToken, COOKIE_OPTIONS);
-    res.json({ accessToken: newAccessToken });
+    res.cookie("refreshToken", newRefreshToken, REFRESH_COOKIE_OPTIONS);
+    res.cookie("accessToken", newAccessToken, ACCESS_COOKIE_OPTIONS);
   } catch (err) {
     res.status(403).json({ message: "Invalid session" });
   }
 };
 
 export const logout = async (req: Request, res: Response) => {
-  const { refreshToken } = req.body;
-  const user = await User.findById(req.user?._id);
-  if (user) {
-    // Delete the token from DB so it can't be used again
-    user.refreshTokens = user.refreshTokens.filter((t) => t !== refreshToken);
-    await user.save();
-  }
+  res.clearCookie("accessToken");
+  res.clearCookie("refreshToken");
   res.sendStatus(204);
 };

@@ -1,32 +1,18 @@
 import jwt from "jsonwebtoken";
-import { UserRole } from "../modules/user/user.model";
-import mongoose, {Schema } from "mongoose";
+import { IUser } from "../modules/user/user.types";
+import { ENV_VARS } from "../consts/env.const";
 
-const ACCESS_SECRET = process.env.ACCESS_TOKEN_SECRET || "access_secret";
-const REFRESH_SECRET = process.env.REFRESH_TOKEN_SECRET || "refresh_secret";
-
-export interface TokenPayload {
-  _id: mongoose.Types.ObjectId;
-  role: UserRole;
-}
-
-// 1. Access Token: Fast expiry, sent in Authorization header
-export const generateAccessToken = (
-  _id: mongoose.Types.ObjectId,
-  role: UserRole
-): string => {
-  return jwt.sign({ _id, role }, ACCESS_SECRET, { expiresIn: "15m" });
+export const generateAccessToken = (user: IUser): string => {
+  const secret = user.access_token_secret + ENV_VARS.GLOBAL_ACCESS_SECRET;
+  return jwt.sign({ id: user._id, role: user.role }, secret, {
+    expiresIn: "15m",
+  });
 };
 
-// 2. Refresh Token: Long expiry, used to 'refresh' the session
-export const generateRefreshToken = (
-  _id: mongoose.Types.ObjectId,
-  role: UserRole
-): string => {
-  return jwt.sign({ _id, role }, REFRESH_SECRET, { expiresIn: "7d" });
+export const generateRefreshToken = (user: IUser): string => {
+  const secret = user.refresh_token_secret + ENV_VARS.GLOBAL_REFRESH_SECRET;
+  return jwt.sign({ id: user._id, role: user.role }, secret, {
+    expiresIn: "7d",
+  });
 };
 
-export const verifyAccessToken = (token: string) =>
-  jwt.verify(token, ACCESS_SECRET) as TokenPayload;
-export const verifyRefreshToken = (token: string) =>
-  jwt.verify(token, REFRESH_SECRET) as TokenPayload;

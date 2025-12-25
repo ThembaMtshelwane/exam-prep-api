@@ -6,6 +6,8 @@ import { generateAccessToken, generateRefreshToken } from "../../utils/jwt";
 import jwt from "jsonwebtoken";
 import { TokenPayload } from "./auth.types";
 import { HTTP_CODES } from "../../consts/http.const";
+import HttpError from "../../utils/http.error";
+import { ENV_VARS } from "../../consts/env.const";
 
 const ACCESS_COOKIE_OPTIONS = {
   httpOnly: true, // Prevents JS from reading the cookie (XSS protection)
@@ -67,15 +69,55 @@ export const login = async (req: Request, res: Response) => {
 };
 
 export const refresh = async (req: Request, res: Response) => {
+  // ═══════════════════════════════════════
+  // STEP 1: Extract Refresh Token from Cookie
+  // ═══════════════════════════════════════
   const refreshToken = req.cookies.refreshToken;
   if (!refreshToken)
     return res.status(401).json({ message: "Session expired" });
 
   try {
-    const decoded = jwt.decode(refreshToken) as TokenPayload;
-    const user = await User.findById(decoded.id);
+    // ═══════════════════════════════════════
+    // STEP 2: Decode Token (No Verification Yet)
+    // ═══════════════════════════════════════
+    const decoded = jwt.decode(refreshToken, { complete: true });
 
-    if (!user) return res.status(500).json({ message: "User not found" });
+    if (!decoded || !decoded.payload || typeof decoded.payload === "string") {
+      throw new HttpError(
+        HTTP_CODES.UNAUTHORIZED,
+        "Invalid refresh token structure"
+      );
+    }
+    const payload = decoded.payload as TokenPayload;
+
+    // ═══════════════════════════════════════
+    // STEP 3: Validate Payload BEFORE DB Query
+    // ═══════════════════════════════════════
+    // This prevents database queries with malicious data
+    if (!payload.id)
+      throw new HttpError(HTTP_CODES.UNAUTHORIZED, "Invalid token structure");
+
+    if (typeof payload.tokenVersion !== "number")
+      throw new HttpError(HTTP_CODES.UNAUTHORIZED, "Invalid token structure");
+
+    // ═══════════════════════════════════════
+    // STEP 4: Get User with Secrets from Database
+    // ═══════════════════════════════════════
+    const user = await User.findById(payload.id);
+    if (!user || !user.refresh_token_secret)
+      throw new HttpError(HTTP_CODES.NOT_FOUND, "User not found");
+
+    // ═══════════════════════════════════════
+    // STEP 5: Verify Refresh Token with Combined Secret
+    // ═══════════════════════════════════════
+    const secret = user.refresh_token_secret + ENV_VARS.GLOBAL_REFRESH_SECRET;
+
+    let verified: TokenPayload;
+    try {
+      verified = jwt.verify(refreshToken, secret) as TokenPayload;
+    } catch (error) {
+      
+    }
 
     // Token Rotation: Remove used token, issue a new pair
     const newAccessToken = generateAccessToken(user);

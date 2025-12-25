@@ -40,6 +40,6 @@ export const ENV_VARS: EnvVars = ENV_SCHEMA.parse({
     process.env.GLOBAL_SECRET ?? crypto.randomBytes(32).toString("hex"),
   GLOBAL_REFRESH_SECRET:
     process.env.GLOBAL_REFRESH_SECRET ?? crypto.randomBytes(32).toString("hex"),
-  ACCESS_TOKEN_EXPIRES_IN: process.env.ACCESS_TOKEN_EXPIRES_IN,
-  REFRESH_TOKEN_EXPIRES_IN: process.env.REFRESH_TOKEN_EXPIRES_IN,
+  ACCESS_TOKEN_EXPIRES_IN: process.env.ACCESS_TOKEN_EXPIRES_IN ?? "15m",
+  REFRESH_TOKEN_EXPIRES_IN: process.env.REFRESH_TOKEN_EXPIRES_IN ?? "7d",
 });

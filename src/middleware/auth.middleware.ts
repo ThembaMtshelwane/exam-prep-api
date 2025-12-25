@@ -36,6 +36,12 @@ export const authenticate = async (
       );
     }
 
+    if (!payload.tokenVersion || typeof payload.tokenVersion !== "number") {
+      return next(
+        new HttpError(HTTP_CODES.UNAUTHORIZED, "Invalid token structure")
+      );
+    }
+
     const user = await User.findById(payload.id).select(
       "+jwt_secret +tokenVersion -password"
     );

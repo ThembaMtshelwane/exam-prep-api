@@ -1,6 +1,6 @@
 import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
-import { connectDatabase, disconnectDatabase } from "../config/database";
+import { connectDatabase, disconnectDatabase } from "../database";
 
 let mongo: MongoMemoryServer;
 

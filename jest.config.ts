@@ -12,7 +12,7 @@ const config: Config = {
 
   moduleFileExtensions: ["ts", "js"],
 
-  setupFilesAfterEnv: ["<rootDir>/src/__test__/setup.ts"],
+  setupFilesAfterEnv: ["<rootDir>/src/config/__test__/setup.ts"],
 };
 
 export default config;

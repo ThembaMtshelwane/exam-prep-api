@@ -5,11 +5,9 @@ import { ZodError } from "zod";
 import { ENV_VARS } from "../consts/env.const";
 
 export const notFound = (req: Request, res: Response, next: NextFunction) => {
-  const error = new HttpError(
-    HTTP_CODES.NOT_FOUND,
-    `Not Found - ${req.originalUrl}`
-  );
-  next(error);
+  res
+    .status(HTTP_CODES.NOT_FOUND)
+    .json({ message: `Not Found - ${req.originalUrl}` });
 };
 
 const handleZodError = (err: ZodError) => {
@@ -29,9 +27,8 @@ const handleZodError = (err: ZodError) => {
 
 export const errorHandler = (
   err: unknown | ZodError | HttpError,
-  req: Request,
-  res: Response,
-  next: NextFunction
+  _: Request,
+  res: Response
 ): unknown => {
   if (err instanceof HttpError) {
     return res.status(err.statusCode).json({

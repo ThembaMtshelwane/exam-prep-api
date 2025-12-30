@@ -9,16 +9,26 @@ import asyncHandler from "express-async-handler";
 
 export const authenticate = asyncHandler(
   async (req: Request, _: Response, next: NextFunction) => {
+    // ═══════════════════════════════════════
+    // STEP 1: Extract Refresh Token from Cookie
+    // ═══════════════════════════════════════
     const accessToken = req.cookies.accessToken;
     if (!accessToken) {
       throw new HttpError(HTTP_CODES.UNAUTHORIZED, "Access token required");
     }
 
+    // ═══════════════════════════════════════
+    // STEP 2: Decode Token (No Verification Yet)
+    // ═══════════════════════════════════════
     const decoded = jwt.decode(accessToken, { complete: true });
     if (!decoded || !decoded.payload || typeof decoded.payload === "string") {
       throw new HttpError(HTTP_CODES.UNAUTHORIZED, "Invalid token structure");
     }
 
+    // ═══════════════════════════════════════
+    // STEP 3: Validate Payload BEFORE DB Query
+    // ═══════════════════════════════════════
+    // This prevents database queries with malicious data
     const payload = decoded.payload as TokenPayload;
     if (!payload.id || typeof payload.id !== "string") {
       throw new HttpError(HTTP_CODES.UNAUTHORIZED, "Invalid token structure");
@@ -28,7 +38,9 @@ export const authenticate = asyncHandler(
       throw new HttpError(HTTP_CODES.UNAUTHORIZED, "Invalid token structure");
     }
 
-    // If this database call fails, express-async-handler catches it and calls next(err)
+    // ═══════════════════════════════════════
+    // STEP 4: Get User with Secrets from Database
+    // ═══════════════════════════════════════
     const user = await User.findById(payload.id).select(
       "+jwt_secret +tokenVersion -password"
     );
@@ -39,6 +51,9 @@ export const authenticate = asyncHandler(
       );
     }
 
+    // ═══════════════════════════════════════
+    // STEP 5: Verify Access Token with Combined Secret
+    // ═══════════════════════════════════════
     const combinedSecret =
       user.access_token_secret + ENV_VARS.GLOBAL_ACCESS_SECRET;
     let verified: TokenPayload;

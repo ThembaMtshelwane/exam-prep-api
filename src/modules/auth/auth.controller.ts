@@ -1,7 +1,12 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import User from "../user/user.model";
-import { generateAccessToken, generateRefreshToken } from "../../utils/jwt";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  getUserIdFromTokenPayload,
+  verifyToken,
+} from "../../utils/jwt";
 import jwt from "jsonwebtoken";
 import { TokenPayload } from "./auth.types";
 import { HTTP_CODES } from "../../consts/http.const";
@@ -68,48 +73,65 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
   // STEP 1: Extract Refresh Token from Cookie
   // ═══════════════════════════════════════
   const refreshToken = req.cookies.refreshToken;
-  if (!refreshToken) res.status(401).json({ message: "Session expired" });
-
-  // ═══════════════════════════════════════
-  // STEP 2: Decode Token (No Verification Yet)
-  // ═══════════════════════════════════════
-  const decoded = jwt.decode(refreshToken, { complete: true });
-  if (!decoded || !decoded.payload || typeof decoded.payload === "string") {
-    throw new HttpError(
-      HTTP_CODES.UNAUTHORIZED,
-      "Invalid refresh token structure"
-    );
-  }
-  // ═══════════════════════════════════════
-  // STEP 3: Validate Payload BEFORE DB Query
-  // ═══════════════════════════════════════
-  // This prevents database queries with malicious data
-  const payload = decoded.payload as TokenPayload;
-
-  if (!payload.id || typeof payload.id !== "string") {
-    throw new HttpError(HTTP_CODES.UNAUTHORIZED, "Invalid token structure");
+  if (!refreshToken) {
+    throw new HttpError(HTTP_CODES.UNAUTHORIZED, "Session expired");
   }
 
-  if (!payload.tokenVersion || typeof payload.tokenVersion !== "number") {
-    throw new HttpError(HTTP_CODES.UNAUTHORIZED, "Invalid token structure");
-  }
+  // // ═══════════════════════════════════════
+  // // STEP 2: Decode Token (No Verification Yet)
+  // // ═══════════════════════════════════════
+  // const decoded = jwt.decode(refreshToken, { complete: true });
+  // if (!decoded || !decoded.payload || typeof decoded.payload === "string") {
+  //   throw new HttpError(
+  //     HTTP_CODES.UNAUTHORIZED,
+  //     "Invalid refresh token structure"
+  //   );
+  // }
+  // // ═══════════════════════════════════════
+  // // STEP 3: Validate Payload BEFORE DB Query
+  // // ═══════════════════════════════════════
+  // // This prevents database queries with malicious data
+  // const payload = decoded.payload as TokenPayload;
+  // if (!payload.id || typeof payload.id !== "string") {
+  //   throw new HttpError(HTTP_CODES.UNAUTHORIZED, "Invalid token structure");
+  // }
 
+  // if (!payload.tokenVersion || typeof payload.tokenVersion !== "number") {
+  //   throw new HttpError(HTTP_CODES.UNAUTHORIZED, "Invalid token structure");
+  // }
+
+  const preliminaryUserId = await getUserIdFromTokenPayload(refreshToken);
   // ═══════════════════════════════════════
   // STEP 4: Get User with Secrets from Database
   // ═══════════════════════════════════════
-  const user = await User.findById(payload.id);
+  const user = await User.findById(preliminaryUserId).select(
+    "+jwt_secret +tokenVersion -password"
+  );
   if (!user || !user.refresh_token_secret)
-    throw new HttpError(HTTP_CODES.NOT_FOUND, "User not found");
+    throw new HttpError(HTTP_CODES.NOT_FOUND, "Not authorized, user not found");
 
   // ═══════════════════════════════════════
   // STEP 5: Verify Refresh Token with Combined Secret
   // ═══════════════════════════════════════
-  const secret = user.refresh_token_secret + ENV_VARS.GLOBAL_REFRESH_SECRET;
+  // const combinedSecret =
+  //   user.refresh_token_secret + ENV_VARS.GLOBAL_REFRESH_SECRET;
+  // let verified: TokenPayload;
+  // try {
+  //   verified = jwt.verify(refreshToken, combinedSecret) as TokenPayload;
+  // } catch (error) {
+  //   if (error instanceof jwt.TokenExpiredError) {
+  //     throw new HttpError(HTTP_CODES.UNAUTHORIZED, "Token expired");
+  //   }
+  //   if (error instanceof jwt.JsonWebTokenError) {
+  //     throw new HttpError(HTTP_CODES.UNAUTHORIZED, "Invalid token");
+  //   }
+  //   throw error;
+  // }
 
-  let verified: TokenPayload;
-  try {
-    verified = jwt.verify(refreshToken, secret) as TokenPayload;
-  } catch (error) {}
+  const verified = verifyToken(refreshToken, user.refresh_token_secret);
+  if (verified.id !== preliminaryUserId) {
+    throw new HttpError(HTTP_CODES.UNAUTHORIZED, "Token mismatch");
+  }
 
   // Token Rotation: Remove used token, issue a new pair
   const newAccessToken = generateAccessToken(user);

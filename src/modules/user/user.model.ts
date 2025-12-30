@@ -38,7 +38,7 @@ userSchema.methods.omitFields = function (...fields: string[]) {
 
 // Regenerate access token secret only
 userSchema.methods.regenerateJwtSecret = async function () {
-  this.jwt_secret = crypto.randomBytes(32).toString("hex");
+  this.access_token_secret = crypto.randomBytes(32).toString("hex");
   await this.save();
 };
 
@@ -50,7 +50,7 @@ userSchema.methods.regenerateRefreshSecret = async function () {
 
 // Regenerate both secrets (nuclear option)
 userSchema.methods.regenerateAllSecrets = async function () {
-  this.jwt_secret = crypto.randomBytes(32).toString("hex");
+  this.access_token_secret = crypto.randomBytes(32).toString("hex");
   this.refresh_token_secret = crypto.randomBytes(32).toString("hex");
   this.tokenVersion = 0;
   await this.save();

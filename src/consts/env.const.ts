@@ -35,7 +35,7 @@ export const ENV_VARS: EnvVars = ENV_SCHEMA.parse({
   NODE_ENV: process.env.NODE_ENV ?? "development",
   CLIENT_URL: process.env.CLIENT_URL ?? "http://localhost:3000",
   DEV_CLIENT_URL: process.env.DEV_CLIENT_URL ?? "http://localhost:3000",
-  MONGO_URI: process.env.MONGO_URI ?? "mongodb://localhost:27017/exam-prep-db",
+  MONGO_URI: "mongodb://localhost:27017/exam-prep-db",
   GLOBAL_ACCESS_SECRET:
     process.env.GLOBAL_SECRET ?? crypto.randomBytes(32).toString("hex"),
   GLOBAL_REFRESH_SECRET:
